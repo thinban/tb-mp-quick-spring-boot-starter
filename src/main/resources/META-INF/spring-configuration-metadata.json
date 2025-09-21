@@ -1,0 +1,22 @@
+{
+  "properties": [
+    {
+      "name": "tb.mp.mapper",
+      "type": "java.lang.String",
+      "description": "mybatis mapper代码位置",
+      "defaultValue": ""
+    },
+    {
+      "name": "tb.jwt.key",
+      "type": "java.lang.String",
+      "description": "jwt的key",
+      "defaultValue": ""
+    },
+    {
+      "name": "tb.jwt.excludes",
+      "type": "java.lang.String",
+      "description": "JwtFilter的白名单",
+      "defaultValue": ""
+    }
+  ]
+}

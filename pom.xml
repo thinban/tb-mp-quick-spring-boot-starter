@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.6</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    <groupId>com.thinban</groupId>
+    <artifactId>tb-mp-quick-spring-boot-starter</artifactId>
+    <version>1.0.0</version>
+    <name>tb-mp-quick-spring-boot-starter</name>
+    <description>tb-mp-quick-spring-boot-starter</description>
+    <url/>
+    <licenses>
+        <license>
+            <name>MIT License</name> <!-- 推荐MIT或Apache 2.0 -->
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <name>Your Name</name>
+            <email>your@email.com</email>
+            <url>https://github.com/yourusername</url>
+        </developer>
+    </developers>
+    <scm>
+        <url>https://github.com/yourusername/custom-spring-boot-starter</url>
+        <connection>scm:git:https://github.com/yourusername/custom-spring-boot-starter.git</connection>
+        <developerConnection>scm:git:git@github.com:yourusername/custom-spring-boot-starter.git</developerConnection>
+        <tag>v1.0.0</tag> <!-- 与版本号对应 -->
+    </scm>
+    <properties>
+        <java.version>17</java.version>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <!-- 设为可选，避免强制引入Web依赖（若Starter需支持非Web环境） -->
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+            <version>3.5.7</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- 核心依赖：Spring Boot 自动配置基础 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+
+        <!-- 配置处理器：生成 META-INF/spring-configuration-metadata.json，支持 IDE 提示 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <version>5.8.38</version>
+        </dependency>
+    </dependencies>
+</project>
