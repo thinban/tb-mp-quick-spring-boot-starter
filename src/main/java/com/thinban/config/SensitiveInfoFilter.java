@@ -18,7 +18,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 敏感信息过滤过滤器（修复中文乱码问题）
+ * 敏感信息过滤过滤器（修复显示格式问题）
  */
 @Component
 @WebFilter(urlPatterns = "/*", filterName = "sensitiveInfoFilter")
@@ -28,39 +28,38 @@ public class SensitiveInfoFilter implements Filter {
     @Autowired
     private ObjectMapper objectMapper;
 
-    // 敏感信息正则匹配器
+    // 敏感信息正则匹配器（修复替换规则）
     private static final Map<Pattern, String> SENSITIVE_PATTERNS = new HashMap<>();
 
     static {
-        // 手机号：保留前3后4位
-        SENSITIVE_PATTERNS.put(Pattern.compile("1[3-9]\\d{9}"), "*** **** ****");
-        // 身份证号：保留前6后4位
-        SENSITIVE_PATTERNS.put(Pattern.compile("\\d{17}[\\dXx]"), "****** **** **** ****");
-        // 银行卡号：保留后4位
-        SENSITIVE_PATTERNS.put(Pattern.compile("\\d{16,19}"), "****************");
-        // 邮箱：隐藏@前的部分字符
-        SENSITIVE_PATTERNS.put(Pattern.compile("(\\w+)(@\\w+\\.\\w+)"), "$1***$2");
+        // 手机号：保留前3位和后4位，中间用*替换（138****1234）
+        // 正则说明：捕获前3位(1[3-9]\\d)和后4位(\\d{4})，中间4位替换为*
+        SENSITIVE_PATTERNS.put(Pattern.compile("(1[3-9]\\d)(\\d{4})(\\d{4})"), "$1****$3");
+
+        // 身份证号：保留前6位和后4位，中间用*替换（110101********1234）
+        // 正则说明：捕获前6位(\\d{6})和后4位(\\d{4}|X|x)，中间10位替换为*
+        SENSITIVE_PATTERNS.put(Pattern.compile("(\\d{6})(\\d{8})(\\d{4}|X|x)"), "$1********$3");
+
+        // 银行卡号：保留后4位（************1234）
+        SENSITIVE_PATTERNS.put(Pattern.compile("(\\d{12,15})(\\d{4})"), "************$2");
+
+        // 邮箱：保留前2位和域名，中间用*替换（ab***@example.com）
+        SENSITIVE_PATTERNS.put(Pattern.compile("(\\w{2})(\\w+)(@\\w+\\.\\w+)"), "$1***$3");
     }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
-        // 1. 强制设置响应编码为UTF-8（关键：解决中文乱码）
         httpResponse.setCharacterEncoding(StandardCharsets.UTF_8.name());
 
-        // 2. 使用带编码的响应包装器
         SensitiveResponseWrapper responseWrapper = new SensitiveResponseWrapper(httpResponse);
-
-        // 3. 继续执行过滤器链
         chain.doFilter(request, responseWrapper);
 
-        // 4. 处理响应内容
         String originalContent = responseWrapper.getContent();
         if (StringUtils.hasText(originalContent)) {
             String filteredContent = filterSensitiveInfo(originalContent);
 
-            // 5. 写入处理后的内容（使用正确编码）
             try (PrintWriter out = httpResponse.getWriter()) {
                 httpResponse.setContentLength(filteredContent.getBytes(StandardCharsets.UTF_8).length);
                 out.write(filteredContent);
@@ -70,12 +69,13 @@ public class SensitiveInfoFilter implements Filter {
     }
 
     /**
-     * 过滤敏感信息
+     * 过滤敏感信息（使用分组捕获保留需要显示的部分）
      */
     private String filterSensitiveInfo(String content) {
         String result = content;
         for (Map.Entry<Pattern, String> entry : SENSITIVE_PATTERNS.entrySet()) {
             Matcher matcher = entry.getKey().matcher(result);
+            // 使用分组替换，保留需要显示的部分
             result = matcher.replaceAll(entry.getValue());
         }
         return result;
@@ -90,7 +90,6 @@ public class SensitiveInfoFilter implements Filter {
 
         public SensitiveResponseWrapper(HttpServletResponse response) throws IOException {
             super(response);
-            // 关键：使用UTF-8编码的字节流
             this.outputStreamWrapper = new ServletOutputStreamWrapper();
         }
 
@@ -102,15 +101,11 @@ public class SensitiveInfoFilter implements Filter {
         @Override
         public PrintWriter getWriter() throws IOException {
             if (writer == null) {
-                // 关键：指定UTF-8编码创建PrintWriter
                 writer = new PrintWriter(new OutputStreamWriter(outputStreamWrapper, StandardCharsets.UTF_8));
             }
             return writer;
         }
 
-        /**
-         * 获取响应内容（使用UTF-8解码）
-         */
         public String getContent() {
             if (writer != null) {
                 writer.flush();
@@ -120,7 +115,7 @@ public class SensitiveInfoFilter implements Filter {
     }
 
     /**
-     * 输出流包装类：使用字节数组存储内容，避免编码问题
+     * 输出流包装类：使用字节数组存储内容
      */
     private static class ServletOutputStreamWrapper extends jakarta.servlet.ServletOutputStream {
         private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
@@ -140,9 +135,6 @@ public class SensitiveInfoFilter implements Filter {
             buffer.write(b);
         }
 
-        /**
-         * 获取原始字节数组
-         */
         public byte[] getBytes() {
             return buffer.toByteArray();
         }

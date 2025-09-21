@@ -43,6 +43,65 @@ tb.jwt.excludes=/app/**
 
 # 版本
 
+## V1.0.1
+
+- 新增StepMonitor注解，结合AOP监控方法使用耗时。
+- 引入MDC，见 TraceIdUtils.java
+
+<details><summary>StepMonitor注解+TraceIdUtils 使用方法</summary>
+
+```
+ try {
+            TraceIdUtils.initTraceId();
+            testService.consume();
+            return 1;
+        } finally {
+            TraceIdUtils.clearTraceId();
+        }
+
+
+@Service
+public class TestService {
+    private static final Logger log = LoggerFactory.getLogger(TestService.class);
+    @Resource
+    TestService self;
+
+    // 消费主方法（调用各步骤）
+    @StepMonitor(stepName = "consume")
+    public void consume() {
+        // 步骤1：解析消息（标记步骤名为"parse_msg"）
+        self.parseMsg();
+        // 步骤2：业务处理（标记步骤名为"biz_process"）
+        self.processBiz();
+        // 步骤3：结果存储（标记步骤名为"save_result"）
+        self.saveResult();
+    }
+
+    // 被监控的步骤1：解析消息
+    @StepMonitor(stepName = "parse_msg")
+    public void parseMsg() {
+        log.info("parseMsg");
+    }
+
+    // 被监控的步骤2：业务处理
+    @StepMonitor(stepName = "biz_process")
+    public void processBiz() {
+        log.info("biz_process");
+
+    }
+
+    // 被监控的步骤3：结果存储
+    @StepMonitor(stepName = "save_result")
+    public void saveResult() {
+        log.info("save_result");
+    }
+}
+
+```
+
+```
+</details>
+
 ## V1.0.0
 
 - 统一的响应体 R.java
