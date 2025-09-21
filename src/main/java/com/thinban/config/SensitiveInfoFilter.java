@@ -1,4 +1,4 @@
-package com.thinban.config;
+package com.example.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.*;
@@ -10,16 +10,15 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 敏感信息过滤过滤器
- * 过滤响应中的敏感信息（如手机号、身份证号等）
+ * 敏感信息过滤过滤器（修复中文乱码问题）
  */
 @Component
 @WebFilter(urlPatterns = "/*", filterName = "sensitiveInfoFilter")
@@ -46,22 +45,27 @@ public class SensitiveInfoFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        // 包装响应对象，用于捕获输出内容
-        SensitiveResponseWrapper responseWrapper = new SensitiveResponseWrapper((HttpServletResponse) response);
+        HttpServletResponse httpResponse = (HttpServletResponse) response;
+        // 1. 强制设置响应编码为UTF-8（关键：解决中文乱码）
+        httpResponse.setCharacterEncoding(StandardCharsets.UTF_8.name());
 
+        // 2. 使用带编码的响应包装器
+        SensitiveResponseWrapper responseWrapper = new SensitiveResponseWrapper(httpResponse);
+
+        // 3. 继续执行过滤器链
         chain.doFilter(request, responseWrapper);
 
-        // 获取原始响应内容并过滤敏感信息
+        // 4. 处理响应内容
         String originalContent = responseWrapper.getContent();
         if (StringUtils.hasText(originalContent)) {
             String filteredContent = filterSensitiveInfo(originalContent);
 
-            // 将过滤后的内容写入实际响应
-            HttpServletResponse httpResponse = (HttpServletResponse) response;
-            httpResponse.setContentLength(filteredContent.getBytes().length);
-            PrintWriter out = httpResponse.getWriter();
-            out.write(filteredContent);
-            out.flush();
+            // 5. 写入处理后的内容（使用正确编码）
+            try (PrintWriter out = httpResponse.getWriter()) {
+                httpResponse.setContentLength(filteredContent.getBytes(StandardCharsets.UTF_8).length);
+                out.write(filteredContent);
+                out.flush();
+            }
         }
     }
 
@@ -78,7 +82,7 @@ public class SensitiveInfoFilter implements Filter {
     }
 
     /**
-     * 响应包装类：捕获响应内容
+     * 响应包装类：使用UTF-8编码捕获响应内容
      */
     private static class SensitiveResponseWrapper extends jakarta.servlet.http.HttpServletResponseWrapper {
         private final ServletOutputStreamWrapper outputStreamWrapper;
@@ -86,6 +90,7 @@ public class SensitiveInfoFilter implements Filter {
 
         public SensitiveResponseWrapper(HttpServletResponse response) throws IOException {
             super(response);
+            // 关键：使用UTF-8编码的字节流
             this.outputStreamWrapper = new ServletOutputStreamWrapper();
         }
 
@@ -97,27 +102,28 @@ public class SensitiveInfoFilter implements Filter {
         @Override
         public PrintWriter getWriter() throws IOException {
             if (writer == null) {
-                writer = new PrintWriter(outputStreamWrapper);
+                // 关键：指定UTF-8编码创建PrintWriter
+                writer = new PrintWriter(new OutputStreamWriter(outputStreamWrapper, StandardCharsets.UTF_8));
             }
             return writer;
         }
 
         /**
-         * 获取响应内容
+         * 获取响应内容（使用UTF-8解码）
          */
         public String getContent() {
             if (writer != null) {
                 writer.flush();
             }
-            return outputStreamWrapper.getContent();
+            return new String(outputStreamWrapper.getBytes(), StandardCharsets.UTF_8);
         }
     }
 
     /**
-     * Servlet输出流包装类：捕获输出内容
+     * 输出流包装类：使用字节数组存储内容，避免编码问题
      */
-    private static class ServletOutputStreamWrapper extends ServletOutputStream {
-        private final StringBuilder content = new StringBuilder();
+    private static class ServletOutputStreamWrapper extends jakarta.servlet.ServletOutputStream {
+        private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
         @Override
         public boolean isReady() {
@@ -131,11 +137,14 @@ public class SensitiveInfoFilter implements Filter {
 
         @Override
         public void write(int b) {
-            content.append((char) b);
+            buffer.write(b);
         }
 
-        public String getContent() {
-            return content.toString();
+        /**
+         * 获取原始字节数组
+         */
+        public byte[] getBytes() {
+            return buffer.toByteArray();
         }
     }
 }
