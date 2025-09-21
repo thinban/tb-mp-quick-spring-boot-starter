@@ -25,6 +25,17 @@
 ## application.properties
 
 ```text
+spring.application.name=demo0916
+spring.jackson.date-format=yyyy-MM-dd HH:mm:ss
+spring.jackson.time-zone=GMT+8
+spring.datasource.url=jdbc:mysql://localhost:3306/mp0614
+spring.datasource.username=root
+spring.datasource.password=root
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+mybatis-plus.configuration.log-impl=org.apache.ibatis.logging.stdout.StdOutImpl
+mybatis-plus.global-config.db-config.logic-delete-field=boolDel
+mybatis-plus.global-config.db-config.logic-delete-value=1
+mybatis-plus.global-config.db-config.logic-not-delete-value=0
 tb.mp.mapper=com.example.mapper
 tb.jwt.key=123456789
 tb.jwt.excludes=/app/**
